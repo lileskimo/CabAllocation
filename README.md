@@ -13,8 +13,18 @@ A smart cab allocation system with separate server and client applications.
 ```bash
 cd server
 npm install
-cp .env.example .env    # edit .env with your values
+cp env.example .env    # edit .env with your values
 npm run dev
+```
+
+## Database Setup
+```bash
+cd server
+# Create PostgreSQL database named 'smartcab'
+# Update .env with your DATABASE_URL
+npx knex migrate:latest    # Create tables
+npx knex seed:run          # Insert sample data
+node scripts/testdb.js      # Test database connection
 ```
 
 ## Run client
