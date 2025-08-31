@@ -117,4 +117,32 @@ router.put('/:id/status', authenticateToken, adminMiddleware, async (req, res) =
   }
 });
 
+/**
+ * PUT /api/cabs/:id/admin-location
+ * Admin only - update cab location (admin override)
+ */
+router.put('/:id/admin-location', authenticateToken, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { lat, lon } = req.body;
+    if (!lat || !lon) {
+      return res.status(400).json({ success: false, error: 'Missing coordinates' });
+    }
+    const result = await pool.query(
+      `UPDATE cabs
+       SET lat=$1, lon=$2, last_update=now()
+       WHERE id=$3
+       RETURNING *`,
+      [lat, lon, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Cab not found' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
 module.exports = router;

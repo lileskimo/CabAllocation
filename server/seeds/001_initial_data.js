@@ -28,9 +28,10 @@ exports.seed = async function(knex) {
 
   console.log('Users created:', users.length);
 
-  // Insert cabs with sample coordinates (near Mumbai) - some recent, some older
+  // Insert cabs with sample coordinates (near IIT Jodhpur) - most recent for testing
   const now = new Date();
-  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+  const oneMinuteAgo = new Date(now.getTime() - 1 * 60 * 1000);
+  const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
   const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
   const cabs = await knex('cabs').insert([
@@ -38,49 +39,49 @@ exports.seed = async function(knex) {
       driver_name: 'Rajesh Kumar',
       vehicle_no: 'MH01AB1234',
       status: 'available',
-      lat: 19.0760,
-      lon: 72.8777,
-      last_update: now // Recent update - should appear in available
+      lat: 26.47,
+      lon: 73.12,
+      last_update: now // Very recent - should be available for trips
     },
     {
       driver_name: 'Amit Singh',
       vehicle_no: 'MH02CD5678',
       status: 'available',
-      lat: 19.0720,
-      lon: 72.8810,
-      last_update: now // Recent update - should appear in available
+      lat: 26.471,
+      lon: 73.121,
+      last_update: oneMinuteAgo // Recent - should be available for trips
     },
     {
       driver_name: 'Suresh Patel',
       vehicle_no: 'MH03EF9012',
       status: 'offline',
-      lat: 19.0760,
-      lon: 72.8777,
+      lat: 26.472,
+      lon: 73.122,
       last_update: tenMinutesAgo // Old update - should not appear in available
     },
     {
       driver_name: 'Vikram Sharma',
       vehicle_no: 'MH04GH3456',
       status: 'available',
-      lat: 19.0780,
-      lon: 72.8750,
-      last_update: fiveMinutesAgo // Recent update - should appear in available
+      lat: 26.473,
+      lon: 73.123,
+      last_update: threeMinutesAgo // Recent - should be available for trips
     },
     {
       driver_name: 'Deepak Verma',
       vehicle_no: 'MH05IJ7890',
       status: 'on_trip',
-      lat: 19.0740,
-      lon: 72.8790,
+      lat: 26.474,
+      lon: 73.124,
       last_update: now // Recent update but on_trip - should not appear in available
     },
     {
       driver_name: 'Rahul Mehta',
       vehicle_no: 'MH06KL2345',
       status: 'available',
-      lat: 19.0800,
-      lon: 72.8730,
-      last_update: tenMinutesAgo // Old update - should not appear in available
+      lat: 26.475,
+      lon: 73.125,
+      last_update: now // Very recent - should be available for trips
     }
   ]).returning('*');
 

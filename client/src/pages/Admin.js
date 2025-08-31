@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AdminMap from '../components/AdminMap';
 
 function Admin() {
   const [cabs, setCabs] = useState([]);
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [selectedCab, setSelectedCab] = useState(null);
   const [newCab, setNewCab] = useState({
     driver_name: '',
     vehicle_no: '',
@@ -117,6 +120,31 @@ function Admin() {
     }
   };
 
+  const updateCabLocation = async (cabId, lat, lon) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:4000/api/cabs/${cabId}/admin-location`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ lat, lon })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setStatus(`Cab location updated successfully`);
+        fetchCabs(); // Refresh the list
+      } else {
+        setStatus(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -146,9 +174,18 @@ function Admin() {
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2>Admin Dashboard</h2>
-        <button className="button" onClick={handleLogout}>
-          Logout
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button 
+            className="button" 
+            onClick={() => setShowMap(!showMap)}
+            style={{ backgroundColor: showMap ? '#28a745' : '#007bff' }}
+          >
+            {showMap ? 'Hide Map' : 'Show Map'}
+          </button>
+          <button className="button" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </div>
       
       <p>Manage cabs and system settings. Currently showing {cabs.length} cabs.</p>
@@ -222,6 +259,20 @@ function Admin() {
           </form>
         )}
       </div>
+
+      {/* Map Interface */}
+      {showMap && (
+        <div style={{ marginBottom: '2rem' }}>
+          <h3>Cab Management Map</h3>
+          <AdminMap
+            cabs={cabs}
+            onStatusChange={updateCabStatus}
+            onLocationUpdate={updateCabLocation}
+            selectedCab={selectedCab}
+            setSelectedCab={setSelectedCab}
+          />
+        </div>
+      )}
       
       <div style={{ marginBottom: '2rem' }}>
         <h3>Cabs List</h3>

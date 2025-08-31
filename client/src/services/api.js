@@ -84,9 +84,20 @@ class ApiService {
     });
   }
 
-  // Trip endpoints (for future use)
+  // Trip endpoints
   async getTrips() {
     return this.request('/trips');
+  }
+
+  async getTripById(tripId) {
+    return this.request(`/trips/${tripId}`);
+  }
+
+  async requestTrip(tripData) {
+    return this.request('/trips/request', {
+      method: 'POST',
+      body: JSON.stringify(tripData)
+    });
   }
 
   async createTrip(tripData) {
