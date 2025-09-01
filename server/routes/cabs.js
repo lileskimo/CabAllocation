@@ -82,6 +82,15 @@ router.put('/:id/location', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Cab not found' });
     }
+    if (result.rows.length > 0) {
+      // Emit real-time update
+      req.app.get('io').emit('cabLocationUpdate', {
+        cabId: id,
+        lat,
+        lon,
+        last_update: result.rows[0].last_update
+      });
+    }
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -109,6 +118,21 @@ router.put('/:id/status', authenticateToken, adminMiddleware, async (req, res) =
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Cab not found' });
+    }
+    // If status is updated to 'available', try to assign pending trips
+    if (status === 'available') {
+      const pendingTrips = await pool.query(
+        `SELECT * FROM trips WHERE status = 'pending' ORDER BY requested_at ASC`
+      );
+      for (const trip of pendingTrips.rows) {
+        // You may want to check location compatibility here
+        await pool.query(
+          `UPDATE trips SET cab_id = $1, status = 'assigned' WHERE id = $2`,
+          [id, trip.id]
+        );
+        // Optionally: break after assigning one trip per cab
+        break;
+      }
     }
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {

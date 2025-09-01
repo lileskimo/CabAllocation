@@ -47,19 +47,6 @@ function App() {
               <span style={{ color: 'white', padding: '0.5rem 1rem' }}>
                 Welcome, {user?.name} ({user?.role})
               </span>
-              <button 
-                onClick={handleLogout}
-                style={{ 
-                  background: 'none', 
-                  border: '1px solid white', 
-                  color: 'white', 
-                  padding: '0.5rem 1rem',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Logout
-              </button>
             </>
           )}
           {isAuthenticated && (

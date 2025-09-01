@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const morgan = require('morgan');
 
@@ -16,10 +17,16 @@ app.use('/api/auth', require('./routes/auth')); // create simple router files th
 app.use('/api/cabs', require('./routes/cabs'));
 app.use('/api/trips', require('./routes/trips'));
 
-// start server + socket.io
+// socket.io setup
 const server = http.createServer(app);
-const { Server } = require('socket.io');
-const io = new Server(server, { cors: { origin: '*' }});
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000", // React dev server
+    methods: ["GET", "POST"]
+  }
+});
+app.set('io', io);
+
 io.on('connection', (socket) => {
   console.log('socket connected', socket.id);
   socket.on('disconnect', () => console.log('socket disconnected', socket.id));
@@ -28,4 +35,4 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-module.exports = { app, io }; 
+module.exports = { app, io };

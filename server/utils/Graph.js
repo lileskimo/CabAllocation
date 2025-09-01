@@ -55,7 +55,100 @@ class Graph {
     return degrees * (Math.PI / 180);
   }
 
-  // Dijkstra's algorithm to find shortest path
+  // A* algorithm to find shortest path (used for cab allocation)
+  aStar(sourceId, targetId) {
+    if (!this.nodes.has(sourceId) || !this.nodes.has(targetId)) {
+      return { distance: Infinity, path: [] };
+    }
+
+    const openSet = new Set([sourceId]);
+    const closedSet = new Set();
+    const cameFrom = new Map();
+    
+    const gScore = new Map(); // Cost from start to current node
+    const fScore = new Map(); // Estimated total cost from start to goal through current node
+    
+    // Initialize scores
+    for (const nodeId of this.nodes.keys()) {
+      gScore.set(nodeId, Infinity);
+      fScore.set(nodeId, Infinity);
+    }
+    
+    gScore.set(sourceId, 0);
+    fScore.set(sourceId, this.heuristic(sourceId, targetId));
+
+    while (openSet.size > 0) {
+      // Find node with lowest fScore
+      let current = null;
+      let lowestFScore = Infinity;
+      
+      for (const nodeId of openSet) {
+        const f = fScore.get(nodeId);
+        if (f < lowestFScore) {
+          lowestFScore = f;
+          current = nodeId;
+        }
+      }
+
+      if (current === targetId) {
+        // Reconstruct path
+        const path = [];
+        let temp = current;
+        while (temp !== undefined) {
+          path.unshift(temp);
+          temp = cameFrom.get(temp);
+        }
+        
+        return {
+          distance: gScore.get(targetId),
+          path: path
+        };
+      }
+
+      openSet.delete(current);
+      closedSet.add(current);
+
+      // Check all neighbors
+      const currentNode = this.nodes.get(current);
+      for (const edge of currentNode.edges) {
+        const neighborId = edge.target;
+        
+        if (closedSet.has(neighborId)) {
+          continue;
+        }
+
+        const tentativeGScore = gScore.get(current) + edge.distance;
+        
+        if (!openSet.has(neighborId)) {
+          openSet.add(neighborId);
+        } else if (tentativeGScore >= gScore.get(neighborId)) {
+          continue;
+        }
+
+        // This path is the best until now
+        cameFrom.set(neighborId, current);
+        gScore.set(neighborId, tentativeGScore);
+        fScore.set(neighborId, tentativeGScore + this.heuristic(neighborId, targetId));
+      }
+    }
+
+    // No path found
+    return { distance: Infinity, path: [] };
+  }
+
+  // Heuristic function for A* (straight-line distance)
+  heuristic(nodeId, targetId) {
+    const node = this.nodes.get(nodeId);
+    const target = this.nodes.get(targetId);
+    
+    if (!node || !target) {
+      return Infinity;
+    }
+    
+    return this.haversineDistance(node.lat, node.lon, target.lat, target.lon);
+  }
+
+  // Dijkstra's algorithm to find shortest path (kept for reference, NOT used for allocation)
   dijkstra(sourceId, targetId) {
     if (!this.nodes.has(sourceId) || !this.nodes.has(targetId)) {
       return { distance: Infinity, path: [] };

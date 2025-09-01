@@ -1,6 +1,17 @@
 const Trip = require('../models/Trip');
 const Cab = require('../models/Cab');
 const { Pool } = require('pg');
+// const Graph = require('../utils/Graph');
+// const graphData = require('../utils/iit_jodhpur_graph.json');
+// const graph = new Graph(graphData);
+
+// function calculateETA(cabLat, cabLon, pickupLat, pickupLon, destLat, destLon) {
+//   // Use your AStarAllocation or Graph to get time estimates
+//   // For example, assume 1 min per edge for simplicity
+//   const toPickup = graph.shortestPathTime(cabLat, cabLon, pickupLat, pickupLon); // implement this
+//   const toDestination = graph.shortestPathTime(pickupLat, pickupLon, destLat, destLon); // implement this
+//   return toPickup + toDestination;
+// }
 
 class TripService {
   constructor(allocationStrategy) {
@@ -8,7 +19,7 @@ class TripService {
     this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
   }
 
-  async createTripRequest(userId, pickupLat, pickupLon, destLat = null, destLon = null) {
+  async createTripRequest(userId, pickup_lat, pickup_lon, dest_lat, dest_lon) {
     const client = await this.pool.connect();
     
     try {
@@ -18,10 +29,10 @@ class TripService {
       const trip = new Trip(
         null,
         userId,
-        pickupLat,
-        pickupLon,
-        destLat,
-        destLon,
+        pickup_lat,
+        pickup_lon,
+        dest_lat,
+        dest_lon,
         'requested'
       );
 
@@ -96,6 +107,13 @@ class TripService {
          WHERE id = $1`,
         [assignment.cab.id]
       );
+
+      // // Notify that a trip has been assigned
+      // req.app.get('io').emit('tripAssigned', {
+      //   tripId: updatedTrip.id,
+      //   cabId: assignment.cab.id,
+      //   userId: updatedTrip.userId
+      // });
 
       await client.query('COMMIT');
 

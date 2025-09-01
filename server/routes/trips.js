@@ -2,20 +2,29 @@ const express = require('express');
 const { query } = require('../db');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const Graph = require('../utils/Graph');
-const DijkstraAllocation = require('../strategies/DijkstraAllocation');
+const AStarAllocation = require('../strategies/AStarAllocation');
 const TripService = require('../services/TripService');
+const graph = require('../utils/iit_jodhpur_graph.json');
+
+// function isWithinMapBounds(lat, lon) {
+//   const epsilon = 0.0005;
+//   // Use Object.values to get an array of node objects
+//   return Object.values(graph.nodes).some(node =>
+//     Math.abs(node.lat - lat) < epsilon && Math.abs(node.lon - lon) < epsilon
+//   );
+// }
 
 const router = express.Router();
 
 // Initialize graph and services
-let graph = null;
+let graphInstance = null;
 let tripService = null;
 
 // Initialize graph and services on startup
 async function initializeServices() {
   try {
-    graph = await Graph.loadFromFile('./utils/iit_jodhpur_graph.json');
-    const allocationStrategy = new DijkstraAllocation(graph);
+    graphInstance = await Graph.loadFromFile('./utils/iit_jodhpur_graph.json');
+    const allocationStrategy = new AStarAllocation(graphInstance);
     tripService = new TripService(allocationStrategy);
     console.log('✅ Graph and TripService initialized successfully');
   } catch (error) {
@@ -61,6 +70,11 @@ router.post('/request', authenticateToken, authorizeRole('employee'), async (req
         error: 'Trip service is not available' 
       });
     }
+
+    // Check map bounds
+    if (!pickup_lat || !pickup_lon || !dest_lat || !dest_lon) {
+  return res.status(400).json({ success: false, error: 'Pickup and destination are required.' });
+}
 
     // Create trip request
     const result = await tripService.createTripRequest(
@@ -135,7 +149,7 @@ router.get('/test', (req, res) => {
     success: true,
     message: 'Trips routes working', 
     endpoint: '/api/trips',
-    graphLoaded: graph !== null
+    graphLoaded: graphInstance !== null
   });
 });
 
@@ -172,4 +186,4 @@ router.get('/:id', authenticateToken, authorizeRole('employee'), async (req, res
   }
 });
 
-module.exports = router; 
+module.exports = router;

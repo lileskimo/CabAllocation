@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TripMap from '../components/TripMap';
+import { io } from 'socket.io-client';
 
 function Employee() {
   const [availableCabs, setAvailableCabs] = useState([]);
@@ -11,10 +12,10 @@ function Employee() {
   const [showTripRequestForm, setShowTripRequestForm] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [selectedCab, setSelectedCab] = useState(null);
-  const [locationUpdate, setLocationUpdate] = useState({
-    lat: '',
-    lon: ''
-  });
+  // const [locationUpdate, setLocationUpdate] = useState({
+  //   lat: '',
+  //   lon: ''
+  // });
   const [tripRequest, setTripRequest] = useState({
     pickup_lat: '',
     pickup_lon: '',
@@ -39,6 +40,24 @@ function Employee() {
     fetchAvailableCabs();
     fetchTrips();
   }, [navigate]);
+
+  useEffect(() => {
+    const socket = io('http://localhost:4000');
+    socket.on('cabLocationUpdate', (data) => {
+      setAvailableCabs(prev => prev.map(cab => cab.id === data.cabId ? { ...cab, lat: data.lat, lon: data.lon, last_update: data.last_update } : cab));
+    });
+    socket.on('tripAssigned', (data) => {
+      // Update trip status in state
+      setTrips(prev =>
+        prev.map(trip =>
+          trip.id === data.tripId
+            ? { ...trip, cab_id: data.cabId, status: 'assigned' }
+            : trip
+        )
+      );
+    });
+    return () => socket.disconnect();
+  }, []);
 
   const fetchAvailableCabs = async () => {
     try {
@@ -99,39 +118,39 @@ function Employee() {
     }
   };
 
-  const updateCabLocation = async (e) => {
-    e.preventDefault();
-    if (!selectedCab) return;
+  // const updateCabLocation = async (e) => {
+  //   e.preventDefault();
+  //   if (!selectedCab) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/cabs/${selectedCab.id}/location`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          lat: parseFloat(locationUpdate.lat),
-          lon: parseFloat(locationUpdate.lon)
-        })
-      });
+  //   try {
+  //     const token = localStorage.getItem('token');
+  //     const response = await fetch(`http://localhost:4000/api/cabs/${selectedCab.id}/location`, {
+  //       method: 'PUT',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         lat: parseFloat(locationUpdate.lat),
+  //         lon: parseFloat(locationUpdate.lon)
+  //       })
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
       
-      if (data.success) {
-        setStatus(`Cab location updated successfully!`);
-        setShowLocationForm(false);
-        setSelectedCab(null);
-        setLocationUpdate({ lat: '', lon: '' });
-        fetchAvailableCabs(); // Refresh the list
-      } else {
-        setStatus(`Error: ${data.error}`);
-      }
-    } catch (error) {
-      setStatus(`Error: ${error.message}`);
-    }
-  };
+  //     if (data.success) {
+  //       setStatus(`Cab location updated successfully!`);
+  //       setShowLocationForm(false);
+  //       setSelectedCab(null);
+  //       setLocationUpdate({ lat: '', lon: '' });
+  //       fetchAvailableCabs(); // Refresh the list
+  //     } else {
+  //       setStatus(`Error: ${data.error}`);
+  //     }
+  //   } catch (error) {
+  //     setStatus(`Error: ${error.message}`);
+  //   }
+  // };
 
   const requestTrip = async (tripData) => {
     console.log('👤 Employee: requestTrip called with data:', tripData);
@@ -202,14 +221,21 @@ function Employee() {
     }
   };
 
-  const openLocationForm = (cab) => {
-    setSelectedCab(cab);
-    setLocationUpdate({
-      lat: cab.lat?.toString() || '',
-      lon: cab.lon?.toString() || ''
-    });
-    setShowLocationForm(true);
-  };
+  // const openLocationForm = (cab) => {
+  //   setSelectedCab(cab);
+  //   setLocationUpdate({
+  //     lat: cab.lat?.toString() || '',
+  //     lon: cab.lon?.toString() || ''
+  //   });
+  //   setShowLocationForm(true);
+  // };
+
+  // function isWithinMapBounds(lat, lon) {
+  //   const epsilon = 0.0005;
+  //   return Object.values(graphData.nodes).some(node =>
+  //     Math.abs(node.lat - lat) < epsilon && Math.abs(node.lon - lon) < epsilon
+  //   );
+  // }
 
   if (isLoading) {
     return (
@@ -234,7 +260,7 @@ function Employee() {
       {/* Trip Request Options */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-          <button 
+          {/* <button 
             className="button" 
             onClick={() => {
               setShowTripRequestForm(!showTripRequestForm);
@@ -242,7 +268,7 @@ function Employee() {
             }}
           >
             {showTripRequestForm ? 'Cancel Form Request' : 'Request Trip (Form)'}
-          </button>
+          </button> */}
           <button 
             className="button" 
             onClick={() => {
@@ -261,6 +287,7 @@ function Employee() {
             <h3>Interactive Map - Select Your Trip Location</h3>
             <TripMap
               availableCabs={availableCabs}
+              setAvailableCabs={setAvailableCabs}
               onPickupSelect={handleMapPickupSelect}
               onDestinationSelect={handleMapDestinationSelect}
               pickupLocation={mapPickupLocation}
@@ -270,15 +297,24 @@ function Employee() {
           </div>
         )}
         
-        {/* Form Interface */}
+        {/* Form Interface
         {showTripRequestForm && (
           <form onSubmit={(e) => {
             e.preventDefault();
+            const pickupLat = parseFloat(tripRequest.pickup_lat);
+            const pickupLon = parseFloat(tripRequest.pickup_lon);
+            const destLat = parseFloat(tripRequest.dest_lat);
+            const destLon = parseFloat(tripRequest.dest_lon);
+
+            if (!pickupLat || !pickupLon || !destLat || !destLon) {
+              setStatus('Pickup and destination are required.');
+              return;
+            }
             requestTrip({
-              pickup_lat: parseFloat(tripRequest.pickup_lat),
-              pickup_lon: parseFloat(tripRequest.pickup_lon),
-              dest_lat: tripRequest.dest_lat ? parseFloat(tripRequest.dest_lat) : null,
-              dest_lon: tripRequest.dest_lon ? parseFloat(tripRequest.dest_lon) : null
+              pickup_lat: pickupLat,
+              pickup_lon: pickupLon,
+              dest_lat: destLat,
+              dest_lon: destLon
             });
           }} style={{ 
             border: '1px solid #ddd', 
@@ -314,23 +350,25 @@ function Employee() {
                 />
               </div>
               <div>
-                <label>Destination Latitude (optional):</label>
+                <label>Destination Latitude <span style={{color:'red'}}>*</span>:</label>
                 <input
                   type="number"
                   step="any"
                   value={tripRequest.dest_lat}
                   onChange={(e) => setTripRequest({...tripRequest, dest_lat: e.target.value})}
+                  required
                   placeholder="26.48"
                   style={{ width: '100%', padding: '0.5rem' }}
                 />
               </div>
               <div>
-                <label>Destination Longitude (optional):</label>
+                <label>Destination Longitude <span style={{color:'red'}}>*</span>:</label>
                 <input
                   type="number"
                   step="any"
                   value={tripRequest.dest_lon}
                   onChange={(e) => setTripRequest({...tripRequest, dest_lon: e.target.value})}
+                  required
                   placeholder="73.13"
                   style={{ width: '100%', padding: '0.5rem' }}
                 />
@@ -340,10 +378,10 @@ function Employee() {
               Request Trip
             </button>
           </form>
-        )}
-      </div>
+        )}*/}
+      </div> 
 
-      {/* Location Update Form */}
+      {/* Location Update Form
       {showLocationForm && selectedCab && (
         <div style={{ 
           border: '1px solid #ddd', 
@@ -398,7 +436,7 @@ function Employee() {
             </div>
           </form>
         </div>
-      )}
+      )} */}
       
       {/* My Trips Section */}
       <div style={{ marginBottom: '2rem' }}>
@@ -463,15 +501,15 @@ function Employee() {
                     <p><strong>Location:</strong> {cab.lat?.toFixed(4)}, {cab.lon?.toFixed(4)}</p>
                     <p><strong>Last Update:</strong> {new Date(cab.last_update).toLocaleString()}</p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {/* <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <button 
                       className="button" 
                       onClick={() => openLocationForm(cab)}
                       style={{ fontSize: '0.9rem', padding: '0.5rem' }}
                     >
                       Update Location
-                    </button>
-                  </div>
+                    </button> 
+                  </div> */}
                 </div>
               </div>
             ))}
@@ -511,4 +549,4 @@ function Employee() {
   );
 }
 
-export default Employee; 
+export default Employee;

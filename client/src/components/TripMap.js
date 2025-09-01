@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Rectangle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { io } from 'socket.io-client';
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -40,13 +41,14 @@ function MapClickHandler({ onLocationSelect, mode }) {
 
 function TripMap({ 
   availableCabs, 
+  setAvailableCabs, // <-- add this prop
   onPickupSelect, 
   onDestinationSelect, 
   pickupLocation, 
   destinationLocation,
   onRequestTrip 
 }) {
-  const [mapCenter, setMapCenter] = useState([26.47, 73.12]); // IIT Jodhpur coordinates
+  const [mapCenter, setMapCenter] = useState([26.4725, 73.1075]); // Optimized center for IIT Jodhpur graph coverage
   const [selectedPickup, setSelectedPickup] = useState(null);
   const [selectedDestination, setSelectedDestination] = useState(null);
   const [mode, setMode] = useState('pickup'); // 'pickup' or 'destination'
@@ -68,32 +70,41 @@ function TripMap({
     }
   };
 
+  // Button click handler
   const handleRequestTrip = () => {
-    console.log('🚗 TripMap: Request Trip button clicked');
-    console.log('🚗 TripMap: selectedPickup:', selectedPickup);
-    console.log('🚗 TripMap: selectedDestination:', selectedDestination);
-    
-    if (selectedPickup) {
-      const tripData = {
-        pickup_lat: selectedPickup.lat,
-        pickup_lon: selectedPickup.lng,
-        dest_lat: selectedDestination?.lat || null,
-        dest_lon: selectedDestination?.lng || null
-      };
-      
-      console.log('🚗 TripMap: Calling onRequestTrip with data:', tripData);
-      onRequestTrip(tripData);
-    } else {
-      console.log('🚗 TripMap: No pickup location selected');
-    }
+    if (!pickupLocation || !destinationLocation) return;
+    onRequestTrip({
+      pickup_lat: pickupLocation.lat,
+      pickup_lon: pickupLocation.lng,
+      dest_lat: destinationLocation.lat,
+      dest_lon: destinationLocation.lng
+    });
   };
 
-  const clearLocations = () => {
-    setSelectedPickup(null);
-    setSelectedDestination(null);
-    onPickupSelect(null, null);
-    onDestinationSelect(null, null);
-  };
+  // Socket.io effect for real-time cab location updates
+  useEffect(() => {
+    const socket = io('http://localhost:4000');
+    socket.on('cabLocationUpdate', (data) => {
+      setAvailableCabs(prev =>
+        prev.map(cab =>
+          cab.id === data.cabId
+            ? { ...cab, lat: data.lat, lon: data.lon, last_update: data.last_update }
+            : cab
+        )
+      );
+    });
+    socket.on('tripAssigned', (data) => {
+      // Optionally update trip status in state
+    });
+    return () => socket.disconnect();
+  }, [setAvailableCabs]);
+
+  // const clearLocations = () => {
+  //   setSelectedPickup(null);
+  //   setSelectedDestination(null);
+  //   onPickupSelect(null, null);
+  //   onDestinationSelect(null, null);
+  // };
 
   return (
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
@@ -130,7 +141,7 @@ function TripMap({
               onChange={() => setMode('destination')}
               style={{ marginRight: '5px' }}
             />
-            Select Destination (Optional)
+            Select Destination Location
           </label>
         </div>
 
@@ -149,20 +160,20 @@ function TripMap({
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
           <button
             onClick={handleRequestTrip}
-            disabled={!selectedPickup}
+            disabled={!selectedPickup || !selectedDestination}
             style={{
               padding: '5px 10px',
-              backgroundColor: selectedPickup ? '#007bff' : '#ccc',
+              backgroundColor: (selectedPickup && selectedDestination) ? '#007bff' : '#ccc',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: selectedPickup ? 'pointer' : 'not-allowed',
+              cursor: (selectedPickup && selectedDestination) ? 'pointer' : 'not-allowed',
               fontSize: '12px'
             }}
           >
             Request Trip
           </button>
-          <button
+          {/* <button
             onClick={clearLocations}
             style={{
               padding: '5px 10px',
@@ -175,7 +186,7 @@ function TripMap({
             }}
           >
             Clear
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -222,12 +233,27 @@ function TripMap({
       {/* Map */}
       <MapContainer
         center={mapCenter}
-        zoom={15}
+        zoom={14}
         style={{ height: '100%', width: '100%' }}
+        bounds={[[26.446, 73.085], [26.499, 73.130]]}
+        maxBounds={[[26.446, 73.085], [26.499, 73.130]]}
+        maxBoundsViscosity={1.0}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+
+        {/* Graph Coverage Area Indicator */}
+        <Rectangle
+          bounds={[[26.446, 73.085], [26.499, 73.130]]}
+          pathOptions={{
+            color: '#007bff',
+            weight: 2,
+            fillColor: '#007bff',
+            fillOpacity: 0.1,
+            interactive: false
+          }}
         />
 
         {/* Map click handler */}
@@ -298,10 +324,11 @@ function TripMap({
       }}>
         <strong>Instructions:</strong><br/>
         • Click on the map to set pickup location<br/>
-        • Switch to "Destination" mode to set destination (optional)<br/>
+        • Switch to "Destination" mode to set destination<br/>
+        • Both pickup and destination are required<br/>
         • Green dots = Available cabs<br/>
         • Blue dot = Pickup location<br/>
-        • Red dot = Destination
+        • Red dot = Destination<br/>
       </div>
     </div>
   );

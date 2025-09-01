@@ -62,8 +62,21 @@ function Admin() {
     }
   };
 
+  // Called from AdminMap
+  const handleCreateCab = (lat, lon) => {
+    setShowCreateForm(true);
+    setNewCab({
+      driver_name: '',
+      vehicle_no: '',
+      lat: lat.toString(),
+      lon: lon.toString()
+    });
+  };
+
+  // Form submit handler
   const createCab = async (e) => {
     e.preventDefault();
+    // Validate fields...
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:4000/api/cabs', {
@@ -201,63 +214,68 @@ function Admin() {
         </button>
         
         {showCreateForm && (
-          <form onSubmit={createCab} style={{ 
-            border: '1px solid #ddd', 
-            padding: '1rem', 
-            borderRadius: '8px',
-            backgroundColor: '#f9f9f9',
-            marginBottom: '1rem'
-          }}>
-            <h3>Create New Cab</h3>
-            <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
-              <div>
-                <label>Driver Name:</label>
-                <input
-                  type="text"
-                  value={newCab.driver_name}
-                  onChange={(e) => setNewCab({...newCab, driver_name: e.target.value})}
-                  required
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
-              </div>
-              <div>
-                <label>Vehicle Number:</label>
-                <input
-                  type="text"
-                  value={newCab.vehicle_no}
-                  onChange={(e) => setNewCab({...newCab, vehicle_no: e.target.value})}
-                  required
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
-              </div>
-              <div>
-                <label>Latitude:</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={newCab.lat}
-                  onChange={(e) => setNewCab({...newCab, lat: e.target.value})}
-                  placeholder="19.0760"
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
-              </div>
-              <div>
-                <label>Longitude:</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={newCab.lon}
-                  onChange={(e) => setNewCab({...newCab, lon: e.target.value})}
-                  placeholder="72.8777"
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
-              </div>
+        <form onSubmit={createCab} style={{
+          border: '1px solid #ddd',
+          padding: '1rem',
+          borderRadius: '8px',
+          backgroundColor: '#f9f9f9',
+          margin: '1rem 0'
+        }}>
+          <h3>Create New Cab</h3>
+          <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
+            <div>
+              <label>Driver Name:</label>
+              <input
+                type="text"
+                value={newCab.driver_name}
+                onChange={e => setNewCab({ ...newCab, driver_name: e.target.value })}
+                required
+                style={{ width: '100%', padding: '0.5rem' }}
+              />
             </div>
-            <button type="submit" className="button" style={{ marginTop: '1rem' }}>
-              Create Cab
-            </button>
-          </form>
-        )}
+            <div>
+              <label>Vehicle No:</label>
+              <input
+                type="text"
+                value={newCab.vehicle_no}
+                onChange={e => setNewCab({ ...newCab, vehicle_no: e.target.value })}
+                required
+                style={{ width: '100%', padding: '0.5rem' }}
+              />
+            </div>
+            <div>
+              <label>Latitude:</label>
+              <input
+                type="number"
+                step="any"
+                value={newCab.lat}
+                onChange={e => setNewCab({ ...newCab, lat: e.target.value })}
+                required
+                style={{ width: '100%', padding: '0.5rem' }}
+                readOnly
+              />
+            </div>
+            <div>
+              <label>Longitude:</label>
+              <input
+                type="number"
+                step="any"
+                value={newCab.lon}
+                onChange={e => setNewCab({ ...newCab, lon: e.target.value })}
+                required
+                style={{ width: '100%', padding: '0.5rem' }}
+                readOnly
+              />
+            </div>
+          </div>
+          <button type="submit" className="button" style={{ marginTop: '1rem' }}>
+            Create Cab
+          </button>
+          <button type="button" className="button" style={{ marginLeft: '1rem', backgroundColor: '#666' }} onClick={() => setShowCreateForm(false)}>
+            Cancel
+          </button>
+        </form>
+      )}
       </div>
 
       {/* Map Interface */}
@@ -266,10 +284,12 @@ function Admin() {
           <h3>Cab Management Map</h3>
           <AdminMap
             cabs={cabs}
+            onCabUpdate={updateCabLocation}
             onStatusChange={updateCabStatus}
             onLocationUpdate={updateCabLocation}
             selectedCab={selectedCab}
             setSelectedCab={setSelectedCab}
+            onCreateCab={handleCreateCab}
           />
         </div>
       )}
@@ -334,4 +354,4 @@ function Admin() {
   );
 }
 
-export default Admin; 
+export default Admin;

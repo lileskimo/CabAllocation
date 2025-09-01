@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Rectangle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -67,9 +67,10 @@ function AdminMap({
   onStatusChange,
   onLocationUpdate,
   selectedCab,
-  setSelectedCab 
+  setSelectedCab,
+  onCreateCab 
 }) {
-  const [mapCenter, setMapCenter] = useState([26.47, 73.12]); // IIT Jodhpur coordinates
+  const [mapCenter, setMapCenter] = useState([26.4725, 73.1075]); // Optimized center for IIT Jodhpur graph coverage
   const [isLocationSelectionMode, setIsLocationSelectionMode] = useState(false);
   const [editingCab, setEditingCab] = useState(null);
   const [newLocation, setNewLocation] = useState(null);
@@ -328,12 +329,27 @@ function AdminMap({
       {/* Map */}
       <MapContainer
         center={mapCenter}
-        zoom={15}
+        zoom={14}
         style={{ height: '100%', width: '100%' }}
+        bounds={[[26.446, 73.085], [26.499, 73.130]]}
+        maxBounds={[[26.446, 73.085], [26.499, 73.130]]}
+        maxBoundsViscosity={1.0}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+
+        {/* Graph Coverage Area Indicator */}
+        <Rectangle
+          bounds={[[26.446, 73.085], [26.499, 73.130]]}
+          pathOptions={{
+            color: '#007bff',
+            weight: 2,
+            fillColor: '#007bff',
+            fillOpacity: 0.1,
+            interactive: false
+          }}
         />
 
         {/* Map click handler */}
@@ -460,8 +476,58 @@ function AdminMap({
         • Click on cab markers to select<br/>
         • Use dropdown to change status<br/>
         • Click "Edit Location" to move cab<br/>
-        • Green = Available, Yellow = On Trip, Red = Offline
+        • Green = Available, Yellow = On Trip, Red = Offline<br/>
+        • Blue rectangle shows graph coverage area
       </div>
+
+      {/* Create New Cab Button */}
+      <button
+        onClick={() => {
+          setIsLocationSelectionMode(true);
+          setEditingCab(null); // Not editing, creating
+          setNewLocation(null);
+        }}
+        style={{
+          padding: '5px 10px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '12px',
+          marginBottom: '10px',
+          position: 'absolute',
+          top: '10px',
+          right: '320px',
+          zIndex: 1000
+        }}
+      >
+        Create New Cab
+      </button>
+
+      {/* Confirm New Cab Location Button - Shown only when creating new cab */}
+      {newLocation && !editingCab && (
+        <div style={{ marginTop: '10px' }}>
+          <button
+            onClick={() => {
+              onCreateCab(newLocation.lat, newLocation.lng);
+              setNewLocation(null);
+              setIsLocationSelectionMode(false);
+            }}
+            style={{
+              padding: '5px 10px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Confirm New Cab Location
+          </button>
+        </div>
+      )}
     </div>
   );
 }

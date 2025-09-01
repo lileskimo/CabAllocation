@@ -1,7 +1,6 @@
 const AllocationStrategy = require('./AllocationStrategy');
 
-// Note: This class now uses A* algorithm instead of Dijkstra for better performance
-class DijkstraAllocation extends AllocationStrategy {
+class AStarAllocation extends AllocationStrategy {
   constructor(graph) {
     super();
     this.graph = graph;
@@ -30,7 +29,7 @@ class DijkstraAllocation extends AllocationStrategy {
       return null;
     }
 
-    // Calculate ETA for each available cab
+    // Calculate ETA for each available cab using A* algorithm
     for (const cab of availableCabs) {
       // Find nearest node to cab location
       const cabNode = this.graph.findNearestNode(cab.lat, cab.lon);
@@ -67,4 +66,4 @@ class DijkstraAllocation extends AllocationStrategy {
   }
 }
 
-module.exports = DijkstraAllocation;
+module.exports = AStarAllocation;
