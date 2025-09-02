@@ -11,7 +11,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'changeme');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Log token validation for debugging (remove in production)
     console.log(`🔍 Token validated for user ID: ${decoded.id}, Role: ${decoded.role}`);

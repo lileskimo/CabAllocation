@@ -27,6 +27,39 @@ function Employee() {
   const [mapDestinationLocation, setMapDestinationLocation] = useState(null);
   const navigate = useNavigate();
 
+  /**
+   * Calculates a dynamic cost per kilometer for a cab trip,
+   * introducing slight variations to simulate real-world conditions.
+   * This is based on a standard CNG sedan in India.
+   *
+   * @returns {number} The calculated dynamic cost per kilometer (e.g., ~9.80).
+   */
+  const calculateCostPerKm = () => {
+    // --- Base Assumptions ---
+    const baseFuelPrice = 75;      // ₹/kg (CNG)
+    const baseEfficiency = 25;     // km/kg
+    const baseMaintenance = 1.5;   // ₹/km
+    const baseDepreciation = 2.3;  // ₹/km
+    const fixedCostPerKm = 2.99;   // ₹/km (Driver salary, insurance, etc.)
+
+    // 1. Simulate fuel price fluctuation (+/- 3%)
+    const fuelPriceJitter = (Math.random() - 0.5) * 0.06; // -0.03 to +0.03
+    const fuelCostPerKm = (baseFuelPrice * (1 + fuelPriceJitter)) / baseEfficiency;
+
+    // 2. Simulate maintenance variability (+/- ₹0.20)
+    const maintenanceJitter = (Math.random() - 0.5) * 0.40; // -0.20 to +0.20
+    const dynamicMaintenanceCost = baseMaintenance + maintenanceJitter;
+
+    // 3. Simulate traffic impact on fixed costs (e.g., 0.9x to 1.3x)
+    const trafficFactor = 0.9 + (Math.random() * 0.4);
+    const dynamicFixedCostPerKm = fixedCostPerKm * trafficFactor;
+
+    const totalCostPerKm =
+      fuelCostPerKm + dynamicMaintenanceCost + baseDepreciation + dynamicFixedCostPerKm;
+
+    return totalCostPerKm;
+  };
+
   useEffect(() => {
     // Check if user is logged in and is employee
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -485,6 +518,13 @@ function Employee() {
             )}
             {trip.est_duration_seconds && (
               <p><strong>Estimated Duration:</strong> {Math.round(trip.est_duration_seconds / 60)} minutes</p>
+            )}
+            {trip.est_distance_meters && (
+              <p>
+                <strong>Estimated Cost: </strong>
+                ₹
+                {( (trip.est_distance_meters / 1000) * calculateCostPerKm() ).toFixed(2)}
+              </p>
             )}
             <p><strong>Requested:</strong> {new Date(trip.requested_at).toLocaleString()}</p>
             {trip.status === 'assigned' && trip.est_duration_seconds && (
