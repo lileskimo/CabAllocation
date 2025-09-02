@@ -101,3 +101,16 @@ npm start
 ```
 The client application will be available at `http://localhost:3000`.
 
+## Summary Table of Common Failure Points
+
+| Area                                   | Typical Failure Points                   | Impact                                      |
+|------------------------------------|----------------------------------------------|-----------------------------------------|
+| Authentication                   | Weak protocols, breaches             | Data loss, security risk.           |
+| Real-time Data Integration | Latency, inaccuracies, outages    | Poor allocation, user frustration|
+| Scalability                         | Cannot handle increased load       | App slowness, crashes           |
+| App/Backend Reliability    | Frequent crashes, poor integration | Downtime, bad experience    |
+| Driver/Customer Engagement | Low retention, high churn       | Service gaps, loss of revenue |
+| Compliance                  | Regulatory/fiscal oversights               | Legal actions, shutdown         |
+| System Monitoring          | No alerting/logging                          | Delayed fixes                          |
+| Exception Handling         | Unhandled or unclear errors           | Debugging difficulty                |
+
