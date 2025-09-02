@@ -138,9 +138,9 @@ function Login() {
         </p>
       </div>
       
-      <button className="button" onClick={testBackend}>
+      {/* <button className="button" onClick={testBackend}>
         Test Backend Connection
-      </button>
+      </button> */}
       
       {status && (
         <div className={`status ${status.includes('Error') || status.includes('failed') ? 'error' : 'success'}`}>

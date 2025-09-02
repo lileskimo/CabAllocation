@@ -340,9 +340,9 @@ function Admin() {
         <button className="button" onClick={fetchCabs}>
           Refresh Cabs
         </button>
-        <button className="button" onClick={testBackend}>
+        {/* <button className="button" onClick={testBackend}>
           Test Backend Connection
-        </button>
+        </button> */}
       </div>
       
       {status && (

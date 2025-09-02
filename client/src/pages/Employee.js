@@ -602,9 +602,9 @@ function Employee() {
         <button className="button" onClick={fetchTrips}>
           Refresh Trips
         </button>
-        <button className="button" onClick={testBackend}>
+        {/* <button className="button" onClick={testBackend}>
           Test Backend Connection
-        </button>
+        </button> */}
       </div>
       
       {status && (

@@ -19,13 +19,13 @@ const createCabIcon = (status) => {
       color = '#28a745'; // Green
       break;
     case 'on_trip':
-      color = '#ffc107'; // Yellow/Orange
+      color = '#dc3545'; // Yellow/Orange
       break;
     case 'offline':
-      color = '#dc3545'; // Red
+      color = '#6c757d'; // Red
       break;
     default:
-      color = '#6c757d'; // Gray
+      color = '#ffc107'; // Gray
   }
 
   return L.divIcon({
@@ -139,9 +139,9 @@ const handleMapClick = (event) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'available': return '#28a745';
-      case 'on_trip': return '#ffc107';
-      case 'offline': return '#dc3545';
-      default: return '#6c757d';
+      case 'on_trip': return '#dc3545';
+      case 'offline': return '#6c757d';
+      default: return '#ffc107';
     }
   };
 
@@ -289,10 +289,10 @@ const handleMapClick = (event) => {
             <span style={{ color: '#28a745' }}>●</span> Available
           </div>
           <div style={{ marginBottom: '5px' }}>
-            <span style={{ color: '#ffc107' }}>●</span> On Trip
+            <span style={{ color: '#dc3545' }}>●</span> On Trip
           </div>
           <div style={{ marginBottom: '5px' }}>
-            <span style={{ color: '#dc3545' }}>●</span> Offline
+            <span style={{ color: '#6c757d' }}>●</span> Offline
           </div>
         </div>
       </div>
