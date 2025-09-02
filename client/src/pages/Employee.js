@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TripMap from '../components/TripMap';
+import TripCountdown from '../components/TripCountdown';
 import { io } from 'socket.io-client';
 
 function Employee() {
@@ -41,23 +42,23 @@ function Employee() {
     fetchTrips();
   }, [navigate]);
 
-  useEffect(() => {
-    const socket = io('http://localhost:4000');
-    socket.on('cabLocationUpdate', (data) => {
-      setAvailableCabs(prev => prev.map(cab => cab.id === data.cabId ? { ...cab, lat: data.lat, lon: data.lon, last_update: data.last_update } : cab));
-    });
-    socket.on('tripAssigned', (data) => {
-      // Update trip status in state
-      setTrips(prev =>
-        prev.map(trip =>
-          trip.id === data.tripId
-            ? { ...trip, cab_id: data.cabId, status: 'assigned' }
-            : trip
-        )
-      );
-    });
-    return () => socket.disconnect();
-  }, []);
+  // useEffect(() => {
+  //   const socket = io('http://localhost:4000');
+  //   socket.on('cabLocationUpdate', (data) => {
+  //     setAvailableCabs(prev => prev.map(cab => cab.id === data.cabId ? { ...cab, lat: data.lat, lon: data.lon, last_update: data.last_update } : cab));
+  //   });
+  //   socket.on('tripAssigned', (data) => {
+  //     // Update trip status in state
+  //     setTrips(prev =>
+  //       prev.map(trip =>
+  //         trip.id === data.tripId
+  //           ? { ...trip, cab_id: data.cabId, status: 'assigned' }
+  //           : trip
+  //       )
+  //     );
+  //   });
+  //   return () => socket.disconnect();
+  // }, []);
 
   const fetchAvailableCabs = async () => {
     try {
@@ -205,6 +206,20 @@ function Employee() {
     setTripRequest(prev => ({ ...prev, dest_lat: lat.toString(), dest_lon: lng.toString() }));
   };
 
+  const handleTripComplete = (tripId) => {
+    // Update the trip status in local state
+    setTrips(prev => 
+      prev.map(trip => 
+        trip.id === tripId 
+          ? { ...trip, status: 'completed' }
+          : trip
+      )
+    );
+    
+    // Show success message
+    setStatus('Trip completed successfully! Cab is now available again.');
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -255,7 +270,7 @@ function Employee() {
         </button>
       </div>
       
-      <p>View available cabs, manage cab locations, and request trips. Currently showing {availableCabs.length} available cabs and {trips.length} trips.</p>
+      <p>View all cabs, manage cab locations, and request trips. Currently showing {availableCabs.length} cabs and {trips.length} trips.</p>
       
       {/* Trip Request Options */}
       <div style={{ marginBottom: '2rem' }}>
@@ -470,6 +485,13 @@ function Employee() {
                   <p><strong>Estimated Duration:</strong> {Math.round(trip.est_duration_seconds / 60)} minutes</p>
                 )}
                 <p><strong>Requested:</strong> {new Date(trip.requested_at).toLocaleString()}</p>
+                {trip.status === 'assigned' && trip.est_duration_seconds && (
+                  <TripCountdown 
+                    trip={trip} 
+                    onTripComplete={handleTripComplete}
+                    onRefreshCabs={fetchAvailableCabs}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -483,7 +505,7 @@ function Employee() {
       </div>
       
       <div style={{ marginBottom: '2rem' }}>
-        <h3>Available Cabs</h3>
+        <h3>All Cabs</h3>
         {availableCabs.length > 0 ? (
           <div style={{ display: 'grid', gap: '1rem' }}>
             {availableCabs.map(cab => (
@@ -497,7 +519,10 @@ function Employee() {
                   <div>
                     <h4>{cab.driver_name}</h4>
                     <p><strong>Vehicle:</strong> {cab.vehicle_no}</p>
-                    <p><strong>Status:</strong> <span style={{ color: 'green' }}>{cab.status}</span></p>
+                    <p><strong>Status:</strong> <span style={{ 
+                      color: cab.status === 'available' ? 'green' : 
+                             cab.status === 'on_trip' ? 'orange' : 'red'
+                    }}>{cab.status}</span></p>
                     <p><strong>Location:</strong> {cab.lat?.toFixed(4)}, {cab.lon?.toFixed(4)}</p>
                     <p><strong>Last Update:</strong> {new Date(cab.last_update).toLocaleString()}</p>
                   </div>
@@ -516,13 +541,13 @@ function Employee() {
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            <h3>No available cabs</h3>
-            <p>There are currently no cabs available for booking.</p>
+            <h3>No cabs found</h3>
+            <p>There are currently no cabs in the system.</p>
             <p>This could mean:</p>
             <ul style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto' }}>
-              <li>All cabs are currently on trips</li>
-              <li>Cabs are offline</li>
-              <li>No cabs have been updated recently (within 5 minutes)</li>
+              <li>No cabs have been registered yet</li>
+              <li>All cabs are offline</li>
+              {/* <li>No cabs have been updated recently (within 5 minutes)</li> */}
             </ul>
           </div>
         )}
@@ -530,7 +555,7 @@ function Employee() {
       
       <div style={{ display: 'flex', gap: '1rem' }}>
         <button className="button" onClick={fetchAvailableCabs}>
-          Refresh Available Cabs
+          Refresh Cabs
         </button>
         <button className="button" onClick={fetchTrips}>
           Refresh Trips

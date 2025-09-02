@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io'); // 1. Import Server class
 const cors = require('cors');
 const morgan = require('morgan');
 
@@ -12,24 +12,37 @@ app.use(morgan('dev'));
 
 app.get('/', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
-// placeholder routes files (to be created later)
-app.use('/api/auth', require('./routes/auth')); // create simple router files that export express.Router()
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/cabs', require('./routes/cabs'));
 app.use('/api/trips', require('./routes/trips'));
 
-// socket.io setup
 const server = http.createServer(app);
-const io = socketIo(server, {
+
+// 2. Create a new socket.io server instance
+const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // React dev server
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
 app.set('io', io);
 
+// 4. Set up a 'connection' event listener
 io.on('connection', (socket) => {
+  // 5. Log when a client connects
   console.log('socket connected', socket.id);
-  socket.on('disconnect', () => console.log('socket disconnected', socket.id));
+
+  // 6. Log when a client disconnects
+  socket.on('disconnect', () => {
+    console.log('socket disconnected', socket.id);
+  });
+
+  // 7. Listen for 'joinTripRoom' event
+  socket.on('joinTripRoom', (tripId) => {
+    // 8. Join the room and log it
+    socket.join(`trip_${tripId}`);
+    console.log(`Socket ${socket.id} joined room trip_${tripId}`);
+  });
 });
 
 const PORT = process.env.PORT || 4000;

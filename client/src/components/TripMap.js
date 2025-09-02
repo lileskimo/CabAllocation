@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Rectangle } from 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { io } from 'socket.io-client';
+import TripCountdown from './TripCountdown';
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -41,12 +42,15 @@ function MapClickHandler({ onLocationSelect, mode }) {
 
 function TripMap({ 
   availableCabs, 
-  setAvailableCabs, // <-- add this prop
+  setAvailableCabs,
   onPickupSelect, 
   onDestinationSelect, 
   pickupLocation, 
   destinationLocation,
-  onRequestTrip 
+  onRequestTrip,
+  ongoingTrip,
+  trips, // <-- Add trips prop
+  setTrips // <-- Add setTrips prop
 }) {
   const [mapCenter, setMapCenter] = useState([26.4725, 73.1075]); // Optimized center for IIT Jodhpur graph coverage
   const [selectedPickup, setSelectedPickup] = useState(null);
@@ -310,6 +314,43 @@ function TripMap({
         )}
       </MapContainer>
 
+      {/* Trip Countdown Integration */}
+      {ongoingTrip && ongoingTrip.status === "on_trip" && (
+        <div style={{
+          position: 'absolute',
+          bottom: '10px',
+          right: '10px',
+          zIndex: 1000,
+          background: 'rgba(255,255,255,0.95)',
+          padding: '10px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          maxWidth: '300px'
+        }}>
+          <TripCountdown
+            trip={ongoingTrip}
+            onTripComplete={(tripId, cabId) => {
+              // Update trip status in parent state
+              if (setTrips) {
+                setTrips(prev =>
+                  prev.map(t =>
+                    t.id === tripId ? { ...t, status: "completed" } : t
+                  )
+                );
+              }
+              // Update cab status in parent state
+              if (setAvailableCabs) {
+                setAvailableCabs(prev =>
+                  prev.map(cab =>
+                    cab.id === cabId ? { ...cab, status: "available" } : cab
+                  )
+                );
+              }
+            }}
+          />
+        </div>
+      )}
+
       {/* Instructions */}
       <div style={{
         position: 'absolute',
@@ -334,4 +375,43 @@ function TripMap({
   );
 }
 
+function TripLiveStatus({ tripId }) {
+  const [driverPosition, setDriverPosition] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [tripStatus, setTripStatus] = useState('');
+
+  useEffect(() => {
+    if (!tripId) return;
+    const socket = io('http://localhost:4000'); // Adjust port if needed
+
+    socket.on('connect', () => {
+      socket.emit('joinTripRoom', tripId);
+    });
+
+    socket.on('trip:update', (data) => {
+      setDriverPosition(data.newDriverLocation);
+      setTimeRemaining(data.timeRemaining);
+      setTripStatus(data.tripStatus);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [tripId]);
+
+  return (
+    <div>
+      <h4>Live Trip Status</h4>
+      <div>Status: {tripStatus}</div>
+      <div>
+        Driver Location: {driverPosition ? `${driverPosition.lat}, ${driverPosition.lng}` : 'Waiting...'}
+      </div>
+      <div>
+        Time Remaining: {timeRemaining !== null ? `${timeRemaining} min` : 'Calculating...'}
+      </div>
+    </div>
+  );
+}
+
 export default TripMap;
+export { TripLiveStatus };

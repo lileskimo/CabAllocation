@@ -17,6 +17,8 @@ function Admin() {
   });
   const navigate = useNavigate();
 
+
+
   useEffect(() => {
     // Check if user is logged in and is admin
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -252,7 +254,6 @@ function Admin() {
                 onChange={e => setNewCab({ ...newCab, lat: e.target.value })}
                 required
                 style={{ width: '100%', padding: '0.5rem' }}
-                readOnly
               />
             </div>
             <div>
@@ -264,7 +265,6 @@ function Admin() {
                 onChange={e => setNewCab({ ...newCab, lon: e.target.value })}
                 required
                 style={{ width: '100%', padding: '0.5rem' }}
-                readOnly
               />
             </div>
           </div>

@@ -1,22 +1,51 @@
 const Trip = require('../models/Trip');
 const Cab = require('../models/Cab');
 const { Pool } = require('pg');
-// const Graph = require('../utils/Graph');
-// const graphData = require('../utils/iit_jodhpur_graph.json');
-// const graph = new Graph(graphData);
-
-// function calculateETA(cabLat, cabLon, pickupLat, pickupLon, destLat, destLon) {
-//   // Use your AStarAllocation or Graph to get time estimates
-//   // For example, assume 1 min per edge for simplicity
-//   const toPickup = graph.shortestPathTime(cabLat, cabLon, pickupLat, pickupLon); // implement this
-//   const toDestination = graph.shortestPathTime(pickupLat, pickupLon, destLat, destLon); // implement this
-//   return toPickup + toDestination;
-// }
+const fs = require('fs');
+const path = require('path');
 
 class TripService {
   constructor(allocationStrategy) {
     this.allocationStrategy = allocationStrategy;
     this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+    // Load graph JSON file
+    const graphPath = path.join(__dirname, '../utils/iit_jodhpur_graph.json');
+    const graphData = JSON.parse(fs.readFileSync(graphPath, 'utf-8'));
+
+    this.nodes = graphData.nodes;  // {id: {lat, lon}}
+    this.edges = graphData.edges;  // adjacency list
+  }
+
+  // Haversine distance in meters
+  haversine(lat1, lon1, lat2, lon2) {
+    function toRad(x) { return x * Math.PI / 180; }
+    const R = 6371000; // meters
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Find nearest node from graph
+  findNearestNode(lat, lon) {
+    let nearestId = null;
+    let nearestNode = null;
+    let minDist = Infinity;
+
+    for (const [nodeId, coords] of Object.entries(this.nodes)) {
+      const d = this.haversine(lat, lon, coords.lat, coords.lon);
+      if (d < minDist) {
+        minDist = d;
+        nearestId = nodeId;
+        nearestNode = coords;
+      }
+    }
+    return { id: nearestId, ...nearestNode };
   }
 
   async createTripRequest(userId, pickup_lat, pickup_lon, dest_lat, dest_lon) {
@@ -25,14 +54,18 @@ class TripService {
     try {
       await client.query('BEGIN');
 
+      // Snap pickup and destination to nearest graph nodes
+      const nearestPickup = this.findNearestNode(pickup_lat, pickup_lon);
+      const nearestDest = this.findNearestNode(dest_lat, dest_lon);
+
       // Create trip with status "requested"
       const trip = new Trip(
         null,
         userId,
-        pickup_lat,
-        pickup_lon,
-        dest_lat,
-        dest_lon,
+        nearestPickup.lat,
+        nearestPickup.lon,
+        nearestDest.lat,
+        nearestDest.lon,
         'requested'
       );
 
@@ -52,16 +85,27 @@ class TripService {
         ]
       );
 
-      const createdTrip = Trip.fromDbRow(tripResult.rows[0]);
+          const createdTrip = Trip.fromDbRow(tripResult.rows[0]);
 
       // Get available cabs
       const cabsResult = await client.query(
         `SELECT * FROM cabs 
-         WHERE status = 'available' 
-         AND now() - last_update < interval '5 minutes'`
+         WHERE status = 'available' `
+        // AND now() - last_update < interval '5 minutes'`
       );
 
-      const cabs = cabsResult.rows.map(row => Cab.fromDbRow(row));
+      let cabs = cabsResult.rows.map(row => Cab.fromDbRow(row));
+
+      // Snap each cab to its nearest node
+   cabs = cabs.map(cab => {
+  const nearestNode = this.findNearestNode(cab.lat, cab.lon);
+  cab.lat = nearestNode.lat;
+  cab.lon = nearestNode.lon;
+  cab.nodeId = nearestNode.id; // extra field if needed
+  return cab;  // still a Cab instance
+});
+
+
 
       // Assign cab using strategy
       const assignment = this.allocationStrategy.assignCab(createdTrip, cabs);
@@ -107,13 +151,6 @@ class TripService {
          WHERE id = $1`,
         [assignment.cab.id]
       );
-
-      // // Notify that a trip has been assigned
-      // req.app.get('io').emit('tripAssigned', {
-      //   tripId: updatedTrip.id,
-      //   cabId: assignment.cab.id,
-      //   userId: updatedTrip.userId
-      // });
 
       await client.query('COMMIT');
 
@@ -163,6 +200,79 @@ class TripService {
     } catch (error) {
       console.error('Error getting trip by ID:', error);
       throw error;
+    }
+  }
+
+  async completeTrip(tripId, userId) {
+    const client = await this.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // Get the trip, verify ownership and status, and lock the row for update
+      const tripResult = await client.query(
+        `SELECT * FROM trips WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+        [tripId, userId]
+      );
+
+      if (tripResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return { success: false, error: 'Trip not found or access denied' };
+      }
+
+      const trip = Trip.fromDbRow(tripResult.rows[0]);
+
+      // Check if trip can be completed
+      if (trip.status !== 'assigned') {
+        await client.query('ROLLBACK');
+        return {
+          success: false,
+          error: `Trip cannot be completed. Current status: ${trip.status}`,
+        };
+      }
+
+      // Snap destination to nearest node
+      const nearestDest = this.findNearestNode(trip.destLat, trip.destLon);
+
+      // Update trip status
+      const updatedTripResult = await client.query(
+        `UPDATE trips 
+         SET status = 'completed', completed_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [tripId]
+      );
+
+      const updatedTrip = Trip.fromDbRow(updatedTripResult.rows[0]);
+      let updatedCab = null;
+
+      // Update cab to nearest node coordinates
+      if (updatedTrip.cabId) {
+        const cabResult = await client.query(
+          `UPDATE cabs 
+           SET lat = $1, lon = $2, status = 'available', last_update = NOW()
+           WHERE id = $3 RETURNING *`,
+          [nearestDest.lat, nearestDest.lon, updatedTrip.cabId]
+        );
+        if (cabResult.rows.length > 0) {
+          updatedCab = Cab.fromDbRow(cabResult.rows[0]);
+        }
+      }
+
+      await client.query('COMMIT');
+
+      return {
+        success: true,
+        trip: updatedTrip.toJSON(),
+        cab: updatedCab ? updatedCab.toJSON() : null,
+      };
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error in completeTrip:', error);
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }

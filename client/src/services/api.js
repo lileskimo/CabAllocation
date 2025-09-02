@@ -106,6 +106,21 @@ class ApiService {
       body: JSON.stringify(tripData)
     });
   }
+
+  async patchTripComplete(tripId) {
+    return fetch(`/api/trips/${tripId}/complete`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  async patchCabStatus(cabId, status) {
+    return fetch(`/api/cabs/${cabId}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+  }
 }
 
 export default new ApiService();

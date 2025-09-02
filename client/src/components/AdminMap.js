@@ -75,11 +75,27 @@ function AdminMap({
   const [editingCab, setEditingCab] = useState(null);
   const [newLocation, setNewLocation] = useState(null);
 
+  const [newCab, setNewCab] = useState({ driver_name: "", vehicle_no: "", lat: "", lon: "" });
+const [marker, setMarker] = useState(null);
+
+const handleMapClick = (event) => {
+  if (isLocationSelectionMode) {
+    const lat = event.latLng.lat();
+    const lon = event.latLng.lng();
+
+    setNewCab({ ...newCab, lat, lon });
+    // setSelectedCab({...newCab, lat, lon });
+    setMarker({ lat, lon });
+    setIsLocationSelectionMode(false); // stop after one selection
+  }
+};
+
   // Update map center when selected cab changes
   useEffect(() => {
     if (selectedCab && selectedCab.lat && selectedCab.lon) {
       setMapCenter([selectedCab.lat, selectedCab.lon]);
     }
+    // setSelectedCab(selectedCab);
   }, [selectedCab]);
 
   const handleLocationSelect = (lat, lng) => {
@@ -221,10 +237,10 @@ function AdminMap({
                 {selectedCab.status}
               </span>
             </p>
-            <p style={{ margin: '5px 0', fontSize: '14px' }}>
+            {/* <p style={{ margin: '5px 0', fontSize: '14px' }}>
               <strong>Location:</strong><br/>
               {selectedCab.lat?.toFixed(6)}, {selectedCab.lon?.toFixed(6)}
-            </p>
+            </p> */}
             <p style={{ margin: '5px 0', fontSize: '12px', color: '#666' }}>
               <strong>Last Update:</strong><br/>
               {new Date(selectedCab.last_update).toLocaleString()}
@@ -233,7 +249,9 @@ function AdminMap({
             <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <select 
                 value={selectedCab.status}
-                onChange={(e) => onStatusChange(selectedCab.id, e.target.value)}
+                onChange={(e) => {onStatusChange(selectedCab.id, e.target.value);
+                  setSelectedCab({ ...selectedCab, status: e.target.value });
+                }}
                 style={{ 
                   padding: '5px', 
                   borderRadius: '4px', 
@@ -486,6 +504,7 @@ function AdminMap({
           setIsLocationSelectionMode(true);
           setEditingCab(null); // Not editing, creating
           setNewLocation(null);
+
         }}
         style={{
           padding: '5px 10px',

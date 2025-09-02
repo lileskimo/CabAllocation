@@ -186,4 +186,43 @@ router.get('/:id', authenticateToken, authorizeRole('employee'), async (req, res
   }
 });
 
+// POST /api/trips/:id/complete - Complete a trip
+router.post('/:id/complete', authenticateToken, authorizeRole('employee'), async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    
+    // Check if services are initialized
+    if (!tripService) {
+      return res.status(503).json({ 
+        success: false, 
+        error: 'Trip service is not available' 
+      });
+    }
+
+    // Complete the trip using TripService
+    const result = await tripService.completeTrip(tripId, req.user.id);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: "Trip completed",
+        trip: result.trip,
+        cab: result.cab
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+  } catch (error) {
+    console.error('Error completing trip:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    });
+  }
+});
+
 module.exports = router;

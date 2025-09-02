@@ -28,8 +28,8 @@ router.get('/available', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT * FROM cabs
-       WHERE status = 'available'
-       AND now() - last_update < interval '5 minutes'`
+       WHERE status = 'available'`
+      //  AND now() - last_update < interval '5 minutes'`
     );
     res.json({ success: true, data: result.rows });
   } catch (err) {
@@ -82,15 +82,33 @@ router.put('/:id/location', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Cab not found' });
     }
-    if (result.rows.length > 0) {
-      // Emit real-time update
-      req.app.get('io').emit('cabLocationUpdate', {
-        cabId: id,
-        lat,
-        lon,
-        last_update: result.rows[0].last_update
+
+    // Find the ongoing trip for this cab
+    const tripResult = await pool.query(
+      `SELECT * FROM trips WHERE cab_id = $1 AND status IN ('assigned', 'enroute', 'ongoing') ORDER BY assigned_at DESC LIMIT 1`,
+      [id]
+    );
+    if (tripResult.rows.length > 0) {
+      const trip = tripResult.rows[0];
+      // Calculate remaining time (replace with your actual logic)
+      const timeRemaining = trip.est_duration_seconds || 0;
+      const tripStatus = trip.status;
+      const io = req.app.get('io');
+      io.to(`trip_${trip.id}`).emit('trip:update', {
+        newDriverLocation: { lat, lng: lon },
+        timeRemaining,
+        tripStatus
       });
     }
+
+    // Emit real-time update for cab location (all clients)
+    req.app.get('io').emit('cabLocationUpdate', {
+      cabId: id,
+      lat,
+      lon,
+      last_update: result.rows[0].last_update
+    });
+
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     console.error(err);

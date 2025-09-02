@@ -206,6 +206,41 @@ class Graph {
     };
   }
 
+  // Add this method to the Graph class
+  dijkstraAllDistances(sourceId) {
+    const distances = new Map();
+    const visited = new Set();
+    const queue = [];
+
+    // Initialize distances
+    for (const nodeId of this.nodes.keys()) {
+      distances.set(nodeId, Infinity);
+    }
+    distances.set(sourceId, 0);
+    queue.push({ id: sourceId, distance: 0 });
+
+    while (queue.length > 0) {
+      queue.sort((a, b) => a.distance - b.distance);
+      const current = queue.shift();
+
+      if (visited.has(current.id)) continue;
+      visited.add(current.id);
+
+      const currentNode = this.nodes.get(current.id);
+      for (const edge of currentNode.edges) {
+        const neighborId = edge.target;
+        const newDistance = current.distance + edge.distance;
+
+        if (newDistance < distances.get(neighborId)) {
+          distances.set(neighborId, newDistance);
+          queue.push({ id: neighborId, distance: newDistance });
+        }
+      }
+    }
+
+    return distances;
+  }
+
   // Load graph from JSON file
   static async loadFromFile(filePath) {
     try {
