@@ -5,7 +5,7 @@ FleetWise is a full-stack web application designed to manage and allocate cabs f
 ## ✨ Features
 
 *   **User Roles & Authentication**: Secure JWT-based authentication with distinct roles for Employees and Administrators.
-*   **Interactive Real-Time Map**: A live map interface (likely using a library like Leaflet) to visualize all available cabs in real-time.
+*   **Interactive Real-Time Map**: A live map interface (using Leaflet) to visualize all available cabs in real-time.
 *   **Trip Management**:
     *   Employees can request trips by selecting pickup and destination points directly on the map.
     *   View trip history and current trip status.
