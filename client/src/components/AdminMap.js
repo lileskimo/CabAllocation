@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Rectangle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -358,7 +358,7 @@ const handleMapClick = (event) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {/* Graph Coverage Area Indicator */}
+        {/* Graph Coverage Area Indicator
         <Rectangle
           bounds={[[26.446, 73.085], [26.499, 73.130]]}
           pathOptions={{
@@ -368,7 +368,7 @@ const handleMapClick = (event) => {
             fillOpacity: 0.1,
             interactive: false
           }}
-        />
+        /> */}
 
         {/* Map click handler */}
         <MapClickHandler 
@@ -498,7 +498,7 @@ const handleMapClick = (event) => {
         • Blue rectangle shows graph coverage area
       </div>
 
-      {/* Create New Cab Button */}
+      {/* Create New Cab Button
       <button
         onClick={() => {
           setIsLocationSelectionMode(true);
@@ -522,7 +522,7 @@ const handleMapClick = (event) => {
         }}
       >
         Create New Cab
-      </button>
+      </button> */}
 
       {/* Confirm New Cab Location Button - Shown only when creating new cab */}
       {newLocation && !editingCab && (

@@ -117,14 +117,21 @@ class TripService {
           assignedCab: null,
           est_distance_m: null,
           est_duration_s: null,
-          status: 'requested'
+          status: 'failed'
         };
       }
 
       // Update trip with cab assignment
       const assignedAt = new Date();
-      const estDistanceMeters = Math.round(assignment.distance);
-      const estDurationSeconds = Math.round(assignment.eta);
+      const directDistance = this.haversine(
+      createdTrip.pickupLat,
+      createdTrip.pickupLon,
+      createdTrip.destLat,
+      createdTrip.destLon
+      );
+
+      const estDistanceMeters = Math.round(assignment.distance + directDistance);
+      const estDurationSeconds = Math.round(directDistance / 8.33 + assignment.eta);
 
       const updatedTripResult = await client.query(
         `UPDATE trips 

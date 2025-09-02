@@ -453,56 +453,58 @@ function Employee() {
         </div>
       )} */}
       
-      {/* My Trips Section */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h3>My Trips</h3>
-        {trips.length > 0 ? (
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {trips.map(trip => (
-              <div key={trip.id} style={{ 
-                border: '1px solid #ddd', 
-                padding: '1rem', 
-                borderRadius: '8px',
-                backgroundColor: '#f9f9f9'
-              }}>
-                <h4>Trip #{trip.id}</h4>
-                <p><strong>Status:</strong> <span style={{ 
-                  color: trip.status === 'completed' ? 'green' : 
-                         trip.status === 'assigned' ? 'blue' :
-                         trip.status === 'ongoing' ? 'orange' : 'gray'
-                }}>{trip.status}</span></p>
-                <p><strong>Pickup:</strong> {trip.pickup_lat?.toFixed(4)}, {trip.pickup_lon?.toFixed(4)}</p>
-                {trip.dest_lat && (
-                  <p><strong>Destination:</strong> {trip.dest_lat?.toFixed(4)}, {trip.dest_lon?.toFixed(4)}</p>
-                )}
-                {trip.driver_name && (
-                  <p><strong>Driver:</strong> {trip.driver_name} ({trip.vehicle_no})</p>
-                )}
-                {trip.est_distance_meters && (
-                  <p><strong>Estimated Distance:</strong> {trip.est_distance_meters}m</p>
-                )}
-                {trip.est_duration_seconds && (
-                  <p><strong>Estimated Duration:</strong> {Math.round(trip.est_duration_seconds / 60)} minutes</p>
-                )}
-                <p><strong>Requested:</strong> {new Date(trip.requested_at).toLocaleString()}</p>
-                {trip.status === 'assigned' && trip.est_duration_seconds && (
-                  <TripCountdown 
-                    trip={trip} 
-                    onTripComplete={handleTripComplete}
-                    onRefreshCabs={fetchAvailableCabs}
-                  />
-                )}
-              </div>
-            ))}
+      {/* {/* My Trips Section */}
+<div style={{ marginBottom: '2rem' }}>
+  <h3>My Trips</h3>
+  {trips.length > 0 ? (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      {[...trips]
+        .slice(0,5)
+        .map(trip => (
+          <div key={trip.id} style={{ 
+            border: '1px solid #ddd', 
+            padding: '1rem', 
+            borderRadius: '8px',
+            backgroundColor: '#f9f9f9'
+          }}>
+            <h4>Trip #{trip.id}</h4>
+            <p><strong>Status:</strong> <span style={{ 
+              color: trip.status === 'completed' ? 'green' : 
+                     trip.status === 'assigned' ? 'blue' :
+                     trip.status === 'ongoing' ? 'orange' : 'gray'
+            }}>{trip.status}</span></p>
+            <p><strong>Pickup:</strong> {trip.pickup_lat?.toFixed(4)}, {trip.pickup_lon?.toFixed(4)}</p>
+            {trip.dest_lat && (
+              <p><strong>Destination:</strong> {trip.dest_lat?.toFixed(4)}, {trip.dest_lon?.toFixed(4)}</p>
+            )}
+            {trip.driver_name && (
+              <p><strong>Driver:</strong> {trip.driver_name} ({trip.vehicle_no})</p>
+            )}
+            {trip.est_distance_meters && (
+              <p><strong>Estimated Distance:</strong> {trip.est_distance_meters}m</p>
+            )}
+            {trip.est_duration_seconds && (
+              <p><strong>Estimated Duration:</strong> {Math.round(trip.est_duration_seconds / 60)} minutes</p>
+            )}
+            <p><strong>Requested:</strong> {new Date(trip.requested_at).toLocaleString()}</p>
+            {trip.status === 'assigned' && trip.est_duration_seconds && (
+              <TripCountdown 
+                trip={trip} 
+                onTripComplete={handleTripComplete}
+                onRefreshCabs={fetchAvailableCabs}
+              />
+            )}
           </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            <h3>No trips yet</h3>
-            <p>You haven't made any cab requests yet.</p>
-            <p>Use the "Request Trip" buttons above to book a cab.</p>
-          </div>
-        )}
-      </div>
+        ))}
+    </div>
+  ) : (
+    <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+      <h3>No trips yet</h3>
+      <p>You haven't made any cab requests yet.</p>
+      <p>Use the "Request Trip" button above to book a cab.</p>
+    </div>
+  )}
+</div>
       
       <div style={{ marginBottom: '2rem' }}>
         <h3>All Cabs</h3>
